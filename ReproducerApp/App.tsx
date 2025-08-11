@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { NativeModules, Platform, StyleSheet, Text, View } from 'react-native';
 
 function createBlockingDelay(milliseconds: number) {
   return new Promise((resolve) => {
@@ -19,6 +19,13 @@ function App() {
       setCounter((previousCount) => previousCount + 1);
     });
   }, [counter]);
+
+  useEffect(() => {
+    // needs to be called before PIP is entered
+    if (Platform.OS === 'android' && NativeModules.HeadlessJSModule) {
+      NativeModules.HeadlessJSModule.updateContext();
+    }
+  }, []);
 
   return (
     <View style={styles.container}>

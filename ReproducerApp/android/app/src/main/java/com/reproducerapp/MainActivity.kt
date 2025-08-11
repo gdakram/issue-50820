@@ -6,11 +6,53 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnable
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 import android.app.PictureInPictureParams
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
 import androidx.annotation.RequiresApi
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.jstasks.HeadlessJsTaskConfig
+import com.facebook.react.jstasks.HeadlessJsTaskContext
 
 class MainActivity : ReactActivity() {
+
+    private var JSTaskID: Int? = null
+    private fun startJSTask() {
+        val taskConfig = HeadlessJsTaskConfig(
+            taskKey = "NFL_KEEP_EXECUTING_ASYNC_JS_IN_PIP",
+            timeout = 0,
+            data = Arguments.createMap(),
+            isAllowedInForeground = true
+        )
+        HeadlessJSModule.currentContext?.let {
+            val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(it)
+            JSTaskID = headlessJsTaskContext.startTask(taskConfig)
+        }
+    }
+
+    private fun stopJSTask() {
+        HeadlessJSModule.currentContext?.let {
+            JSTaskID?.let { id ->
+                val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(it)
+                headlessJsTaskContext.finishTask(id)
+                JSTaskID = null
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration,
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+
+        // needed so that async JS code keeps executing on the main thread
+        if (isInPictureInPictureMode) {
+            startJSTask()
+        } else {
+            stopJSTask()
+        }
+    }
 
   override fun onUserLeaveHint() {
       super.onUserLeaveHint()
